@@ -1,9 +1,10 @@
 from utils import load_video, save_video
 from trackers import Tracker
-import cv2
+import supervision as sv
+
 
 def main():
-    video_frames = load_video('08fd33_4.mp4')
+    video_frames = sv.get_video_frames_generator('08fd33_4.mp4')
 
     tracker = Tracker('training/weights/best.pt')
     
