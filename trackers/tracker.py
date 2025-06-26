@@ -5,6 +5,7 @@ import pandas as pd
 import pickle
 import os
 import cv2
+from tqdm import tqdm
 from utils import get_center, get_width
 from team_assigner import TeamColorAssigner
 
@@ -13,19 +14,24 @@ class Tracker:
         self.model = YOLO(model_path)
         self.tracker = sv.ByteTrack()
 
-    def detect_frames(self, frames, batch=True, batch_size=20):
-        if batch:
+    def detect_frames(self, frames, info=None, batch=True, batch_size=20):
+        '''if batch:
             detections = []
             for i in range(0, len(frames), batch_size):
-                results = self.model.predict(frames[i:i+batch_size], conf=0.1)
+                results = self.model(frames[i:i+batch_size], conf=0.1)
                 detections += results
 
             return detections
         
-        detections = self.model.predict(frames, conf=0.1)
+        detections = self.model(frames, conf=0.1)'''
+        detections = []
+        for frame in tqdm(frames, total=info.total_frames):
+            
+            results = self.model.predict(frame, verbose=False)
+            detections += results
         return detections
 
-    def get_object_tracks(self, frames, read_from_stub=False, stub_path=None):
+    def get_object_tracks(self, frames, info=None, read_from_stub=False, stub_path=None):
 
         if read_from_stub and os.path.exists(stub_path):
             with open(stub_path, 'rb') as f:
@@ -38,7 +44,7 @@ class Tracker:
                 'ball': []
             }
 
-            detections = self.detect_frames(frames)
+            detections = self.detect_frames(frames, info=info)
 
     
 
