@@ -1,77 +1,23 @@
-'''from utils import save_video
-from trackers import Tracker
 import supervision as sv
-
-
-def main():
-
-    vidinfo = sv.VideoInfo.from_video_path('08fd33_4.mp4')
-    video_frames = sv.get_video_frames_generator('08fd33_4.mp4')
-
-    tracker = Tracker('training/weights/best.pt')
-    
-    tracks = tracker.get_object_tracks(video_frames,
-                                       read_from_stub=False,
-                                       info=vidinfo,
-                                       stub_path='saved_tracks/tracks_stubs.pkl')
-    
-    output_frames = tracker.draw_annotations(video_frames, tracks)
-
-    save_video(output_frames, 'output_videos/output_vid.avi')
-
-if __name__ == '__main__':
-    main()'''
-
-from inference import get_model
-from dotenv import load_dotenv
-import torch
-import os
-import cv2
-import supervision as sv
+from tqdm import tqdm
 import numpy as np
-from utils.utils import extract_and_save
-from team_assigner.assigner import TeamAssigner
-from annotations import ellipse_annotator, label_annotator, triangle_annotator, vertex_annotator
-from generate_analysis import gen_analysis
+from transform_perspective import ViewTransformer
+from sports.annotators.soccer import draw_pitch, draw_points_on_pitch
+from utils.utils import resolve_goal_keeper_team
+from sports.configs.soccer import SoccerPitchConfiguration
+from sports.annotators.soccer import draw_pitch
+import matplotlib.pyplot as plt
 
-# Suppress warnings and logging messages
-import warnings
-import logging
-
-# Silence general warnings
-warnings.filterwarnings("ignore")
-
-# Silence inference telemetry/threading warnings
-logging.getLogger("inference.usage_tracking.collector").setLevel(logging.ERROR)
+CONFIG = SoccerPitchConfiguration()
 
 
 
+def gen_analysis(vid_path, target_vid_path, target_vid_path2, player_model, pitch_detection_model, team_assigner,
+                 ellipse_annotator, triangle_annotator, label_annotator):
 
+    videoinfo = sv.VideoInfo.from_video_path(vid_path)
+    vidsink = sv.VideoSink(target_vid_path, video_info=videoinfo)
 
-
-load_dotenv()
-os.environ["ONNXRUNTIME_EXECUTION_PROVIDERS"] = "[CUDAExecutionProvider]" if torch.cuda.is_available() else "[CPUExecutionProvider]"
-
-def main():
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    sam_path = 'C:/Users/Lenovo/Coding Projects/AI Projects/Video Analysis/08fd33_4.mp4'
-
-    PLAYER_DETECTION_MODEL_ID = "football-players-detection-3zvbc/11"
-    PLAYER_DETECTION_MODEL = get_model(
-        model_id = PLAYER_DETECTION_MODEL_ID)
-    PITCH_DETECTION_MODEL_ID = "football-field-detection-f07vi/14"
-    PITCH_DETECTION_MODEL = get_model(PITCH_DETECTION_MODEL_ID)
-
-    crops = extract_and_save(sam_path, PLAYER_DETECTION_MODEL, read=True, save_file='saved_crops/crops.pkl')
-
-
-    team_assigner = TeamAssigner()
-    team_assigner.fit(crops)
-
-    gen_analysis(sam_path, 'analyzed2.mp4', 'pitch_analysis.mp4', PLAYER_DETECTION_MODEL, PITCH_DETECTION_MODEL, team_assigner, ellipse_annotator, triangle_annotator, 
-                 label_annotator)
-
-    '''videoinfo = sv.VideoInfo.from_video_path(sam_path)
     pitch_width = 1300
     pitch_height = 800
 
@@ -80,19 +26,17 @@ def main():
                 width=pitch_width,
                 height=pitch_height
         )
+    
+    vidsink2 = sv.VideoSink(target_vid_path2, video_info=pitch_vid_info, codec='mp4v')
+    tracker = sv.ByteTrack()
+    tracker.reset()
 
-    vidsink2 = sv.VideoSink('pitch_analysis.mp4', video_info=pitch_vid_info, codec='mp4v')
-    framegen = sv.get_video_frames_generator(sam_path)
+    framegen = sv.get_video_frames_generator(vid_path)
 
-    print(f"VideoSink2 writer status: {vidsink2._VideoSink__writer is not None}")
-    with vidsink2:
+    with vidsink, vidsink2:
         for frame in tqdm(framegen, desc='Generating analysis', total = videoinfo.total_frames):
-
-            results = PLAYER_DETECTION_MODEL.infer(frame, confidence=0.3)[0]
+            results = player_model.infer(frame, confidence=0.3)[0]
             detections = sv.Detections.from_inference(results)
-
-            tracker = sv.ByteTrack()
-            tracker.reset()
 
             player_id = 2
             ref_id = 3
@@ -127,17 +71,14 @@ def main():
             annotated_frame = ellipse_annotator.annotate(annotated_frame, other_detections)
             annotated_frame = triangle_annotator.annotate(annotated_frame, ball_detections)
             annotated_frame = label_annotator.annotate(annotated_frame, other_detections, labels=labels)
-            #vidsink.write_frame(annotated_frame)
+            vidsink.write_frame(annotated_frame)
 
-            
+
+
             ## Generating pitch analysis
-
-            PITCH_DETECTION_MODEL_ID = "football-field-detection-f07vi/14"
-            pitch_detection_model = get_model(PITCH_DETECTION_MODEL_ID)
-
-
             result = pitch_detection_model.infer(frame, confidence=0.3)[0]
             key_points = sv.KeyPoints.from_inference(result)
+
 
             filter = key_points.confidence[0] > 0.5
             frame_reference_points = key_points.xy[0][filter]
@@ -145,8 +86,8 @@ def main():
             pitch_reference_points = np.array(CONFIG.vertices)[filter]
 
             view_transformer = ViewTransformer(source=frame_reference_points,
-                                                target=pitch_reference_points)
-                    
+                                            target=pitch_reference_points)
+            
 
             frame_ball_xy = ball_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
             pitch_ball_xy = view_transformer.transform_points(frame_ball_xy)
@@ -157,12 +98,10 @@ def main():
             frame_refs_xy = ref_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
             pitch_refs_xy = view_transformer.transform_points(frame_refs_xy)
 
-                    #frame_goal_xy = goalkeeper_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-                    #pitch_goal_xy = view_transformer.transform_points(frame_goal_xy)
+            frame_goal_xy = goalkeeper_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+            pitch_goal_xy = view_transformer.transform_points(frame_goal_xy)
 
-            #print("Ball:", pitch_ball_xy)
-            #print("Players:", pitch_players_xy)
-            #print("Refs:", pitch_refs_xy)
+
             pitch = draw_pitch(config=CONFIG)
 
             pitch = draw_points_on_pitch(config=CONFIG,
@@ -171,28 +110,35 @@ def main():
                                         edge_color = sv.Color.BLACK,
                                         radius=10,
                                         pitch=pitch)
-                    
+            
             pitch = draw_points_on_pitch(config=CONFIG,
                                         xy=pitch_players_xy[player_detections.class_id == 0],
                                         face_color=sv.Color.from_hex('#00ff1b'),
                                         edge_color=sv.Color.BLACK,
                                         radius=10,
                                         pitch=pitch)
-                    
+            
             pitch = draw_points_on_pitch(config=CONFIG,
                                         xy=pitch_players_xy[player_detections.class_id == 1],
                                         face_color=sv.Color.from_hex('#0ed0ff'),
                                         edge_color=sv.Color.BLACK,
                                         radius=10,
                                         pitch=pitch)
-                    
-            """pitch = draw_points_on_pitch(config=CONFIG,
-                                                xy=pitch_goal_xy,
-                                                face_color=sv.Color.from_hex('#00ff1b'),
-                                                edge_color=sv.Color.BLACK,
-                                                radius=10,
-                                                pitch=pitch)"""
-                    
+            
+            pitch = draw_points_on_pitch(config=CONFIG,
+                                        xy=pitch_goal_xy[goalkeeper_detections.class_id == 0],
+                                        face_color=sv.Color.from_hex('#00ff1b'),
+                                        edge_color=sv.Color.BLACK,
+                                        radius=10,
+                                        pitch=pitch)
+            
+            pitch = draw_points_on_pitch(config=CONFIG,
+                                        xy=pitch_goal_xy[goalkeeper_detections.class_id == 1],
+                                        face_color=sv.Color.from_hex('#00ff1b'),
+                                        edge_color=sv.Color.BLACK,
+                                        radius=10,
+                                        pitch=pitch)
+            
             pitch = draw_points_on_pitch(config=CONFIG,
                                         xy=pitch_refs_xy,
                                         face_color=sv.Color.from_hex('#ffae00'),
@@ -200,10 +146,8 @@ def main():
                                         radius=10,
                                         pitch=pitch)
             
-            print(type(pitch))
-            print(pitch.shape)
-            vidsink2.write_frame(pitch)'''
- 
+            
+            vidsink2.write_frame(pitch)
 
-if __name__ == '__main__':
-    main()
+
+
