@@ -30,7 +30,7 @@ os.environ["ONNXRUNTIME_EXECUTION_PROVIDERS"] = "[CUDAExecutionProvider]" if tor
 
 def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    sam_path = 'C:/Users/Lenovo/Coding Projects/AI Projects/Video Analysis/08fd33_4.mp4'
+    sam_path = input('Enter the football video path: ') 
 
     PLAYER_DETECTION_MODEL_ID = "football-players-detection-3zvbc/11"
     PLAYER_DETECTION_MODEL = get_model(
