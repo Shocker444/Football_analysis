@@ -1,0 +1,22 @@
+# Ignore files
+output_videos/
+__pycache__/
+runs/
+*.pyc
+*.pyd
+*.pyo
+*.pkl
+*.ipynb_checkpoints
+test.ipynb
+test.py
+
+.env
+*.vscode/
+
+# ignore videos
+*.mp4
+*.avi
+
+#checkpoints
+*.pt
+*.pth
