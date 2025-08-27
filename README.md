@@ -16,6 +16,7 @@ This repository contains tools and scripts for analyzing football (soccer) data,
 
 # Project structure
 
+```
 football-vision/
 │── team_assigner/           # Logic for assigning detected players to teams
 │── utils/                   # Utility functions (image processing, helpers, etc.)
@@ -27,6 +28,7 @@ football-vision/
 │── requirements.txt         # Project dependencies
 │── transform_perspective.py # Homography and perspective transforms
 │── .gitignore               # Git ignore rules
+```
 
 # ⚡ Getting Started: Clone the repo
 <pre> git clone https://github.com/your-username/football-vision.git </pre>
@@ -37,7 +39,7 @@ football-vision/
 
 # Generate Analysis
 After cloning, installing dependencies and going to the directory, run.
-<pre> python main.py # to start generating analysis </pre>
+``` python main.py ``` # to start generating analysis
 
 # Sample gif
 ![Example](sports.gif)
