@@ -2,6 +2,7 @@
 
 This repository contains tools and scripts for analyzing football (soccer) data, including player performance, team statistics, and advanced metrics. The project aims to provide insightful visualizations, predictive models, and data-driven insights to better understand the game and support data-informed decision-making.
 
+<pre> ```bash # Clone the repo git clone https://github.com/username/repo.git # Change directory cd repo # Install dependencies pip install -r requirements.txt ``` </pre>
 
 # 🚀 Features
 
