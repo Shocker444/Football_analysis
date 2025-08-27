@@ -41,6 +41,8 @@ football-vision/
 After cloning, installing dependencies and going to the directory, run.
 ``` python main.py ``` # to start generating analysis
 
+**Do not forget to create your .env file which stores your roboflow api key**
+
 # Sample gif
 ![Example](sports.gif)
 
