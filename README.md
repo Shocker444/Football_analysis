@@ -2,7 +2,6 @@
 
 This repository contains tools and scripts for analyzing football (soccer) data, including player performance, team statistics, and advanced metrics. The project aims to provide insightful visualizations, predictive models, and data-driven insights to better understand the game and support data-informed decision-making.
 
-<pre> ```bash # Clone the repo git clone https://github.com/username/repo.git # Change directory cd repo # Install dependencies pip install -r requirements.txt ``` </pre>
 
 # 🚀 Features
 
@@ -30,15 +29,15 @@ football-vision/
 │── .gitignore               # Git ignore rules
 
 # ⚡ Getting Started: Clone the repo
-git clone https://github.com/your-username/football-vision.git
-cd football-vision
+<pre> git clone https://github.com/your-username/football-vision.git </pre>
+<pre> cd football-vision </pre>
 
 # Install dependencies
-pip install -r requirements.txt
+<pre> pip install -r requirements.txt </pre>
 
 # Generate Analysis
 After cloning, installing dependencies and going to the directory, run.
-python main.py to start generating analysis
+<pre> python main.py # to start generating analysis </pre>
 
 # Sample gif
 ![Example](sports.gif)
